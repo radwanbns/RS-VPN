@@ -8,6 +8,28 @@
 
 اتبع الخطوات التالية على جهازك لإكمال المشروع.
 
+## 0) أكمل سقالة Gradle أولًا (خطوة ضرورية قبل أي بناء)
+
+المشروع بُني يدويًا بالملفات الجوهرية فقط، وينقصه ملفات Gradle
+القياسية (`gradlew`, `gradle-wrapper.jar`, `settings.gradle`,
+`res/values/styles.xml`...) التي عادة يولّدها أمر `flutter create`.
+بدونها يفشل البناء برسالة مضلّلة مثل:
+
+```
+Build failed due to use of deleted Android v1 embedding.
+```
+
+شغّل هذا الأمر **مرة واحدة** بعد أول `git clone`، من جذر المشروع:
+
+```bash
+flutter create . --platforms=android --org=com.rsvpn --project-name=rs_vpn
+```
+
+هذا الأمر **آمن**: يضيف فقط الملفات القياسية الناقصة، ولا يلمس
+`lib/`, `AndroidManifest.xml`, أو `MainActivity.kt` المخصصة مسبقًا.
+نفس الخطوة مضافة تلقائيًا في GitHub Actions (`.github/workflows/build.yml`)
+فلا تحتاجها هناك يدويًا.
+
 ## 1) جلب الكود المصدري الرسمي لـ Amnezia
 
 المشروع مرخّص GPLv3 (مفتوح المصدر بالكامل)، ويسمح بإعادة التوزيع
