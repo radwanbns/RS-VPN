@@ -22,5 +22,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/icons/
+  # أضف قسم assets هنا فقط بعد وضع ملفات حقيقية تُستخدم في الكود، مثال:
+  # assets:
+  #   - assets/icons/logo.png
