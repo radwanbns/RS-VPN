@@ -1,4 +1,4 @@
-name: Build RS VPN
+name: Build RS VPN (Kotlin)
 
 on:
   push:
@@ -8,31 +8,8 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  analyze:
-    name: Analyze & test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.0'
-          channel: 'stable'
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Static analysis
-        run: flutter analyze
-
-      - name: Run tests
-        run: flutter test
-        continue-on-error: true # فعّلها بصرامة لاحقًا بعد إضافة اختبارات
-
-  build-apk:
-    name: Build APK
-    needs: analyze
+  build:
+    name: Lint & Build APK
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,39 +20,32 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.0'
-          channel: 'stable'
+      # يولّد gradlew + gradle-wrapper.jar تلقائيًا (غير مضمّنين في
+      # المستودع لأنهما ملفات ثنائية) باستخدام إصدار Gradle المحدد في
+      # gradle/wrapper/gradle-wrapper.properties
+      - name: Generate Gradle wrapper
+        run: gradle wrapper --gradle-version 8.7
 
-      # يضيف الملفات القياسية التي يحتاجها Gradle (gradlew, gradle-wrapper.jar,
-      # settings.gradle, res/values/styles.xml ...) دون المساس بملفاتنا
-      # المخصصة (lib/, AndroidManifest.xml, MainActivity.kt). هذا يصلح
-      # خطأ "deleted Android v1 embedding" الناتج عن نقص هذه الملفات.
-      - name: Complete Android/Gradle scaffold
-        run: flutter create . --platforms=android --org=com.rsvpn --project-name=rs_vpn
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Lint
+        run: ./gradlew lint
 
-      # ⚠️ هذه الخطوة تفترض أنك جهّزت المكتبات الأصلية مسبقًا
-      # (AmneziaWG / WireGuard) حسب BUILD_STEPS.md ووضعتها في:
-      #   android/app/src/main/jniLibs/arm64-v8a/
-      #   android/app/src/main/jniLibs/armeabi-v7a/
-      # إن لم تكن موجودة بعد، هذا الـ step يتأكد فقط أن المجلدات موجودة
-      # ولا يفشل البناء، لكن الـ APK الناتج لن يحتوي محرك اتصال فعلي.
+      # ⚠️ تفترض هذه الخطوة أنك جهّزت مكتبات AmneziaWG الأصلية مسبقًا
+      # حسب BUILD_STEPS.md ووضعتها في app/src/main/jniLibs/. إن لم تكن
+      # موجودة بعد، البناء ينجح لكن الـ APK بدون محرك اتصال فعلي.
       - name: Check native libs presence
         run: |
           echo "Checking for native AmneziaWG libraries..."
-          find android/app/src/main/jniLibs -name "*.so" || echo "⚠️ لا توجد مكتبات .so بعد — راجع BUILD_STEPS.md"
+          find app/src/main/jniLibs -name "*.so" || echo "⚠️ لا توجد مكتبات .so بعد — راجع BUILD_STEPS.md"
 
-      - name: Build APK (release)
-        run: flutter build apk --release
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rs-vpn-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: rs-vpn-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
