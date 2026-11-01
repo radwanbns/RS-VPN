@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../services/vpn_engine.dart';
 import '../widgets/info_tile.dart';
 
 class HomeScreen extends StatefulWidget {
