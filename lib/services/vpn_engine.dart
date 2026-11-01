@@ -57,7 +57,7 @@ class VpnEngine {
     try {
       await _channel.invokeMethod('connect', {'config': tunnelConfigJson});
       _emit(_current.copyWith(isConnected: true, isConnecting: false));
-    } on PlatformException catch (e) {
+    } on PlatformException {
       _emit(_current.copyWith(isConnecting: false, isConnected: false));
       rethrow;
     }
