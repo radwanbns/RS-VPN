@@ -49,6 +49,13 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
+      # يضيف الملفات القياسية التي يحتاجها Gradle (gradlew, gradle-wrapper.jar,
+      # settings.gradle, res/values/styles.xml ...) دون المساس بملفاتنا
+      # المخصصة (lib/, AndroidManifest.xml, MainActivity.kt). هذا يصلح
+      # خطأ "deleted Android v1 embedding" الناتج عن نقص هذه الملفات.
+      - name: Complete Android/Gradle scaffold
+        run: flutter create . --platforms=android --org=com.rsvpn --project-name=rs_vpn
+
       - name: Install dependencies
         run: flutter pub get
 
