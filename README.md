@@ -37,6 +37,7 @@ SERVER_CONFIG.example.json
 ## البدء السريع
 
 ```bash
+flutter create . --platforms=android --org=com.rsvpn --project-name=rs_vpn  # مرة واحدة فقط
 flutter pub get
 flutter run
 ```
