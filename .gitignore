@@ -1,0 +1,16 @@
+# ملفات الإعدادات الخاصة
+config.json
+servers_cache.json
+
+# مفاتيح SSH لا يجب رفعها أبداً
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
