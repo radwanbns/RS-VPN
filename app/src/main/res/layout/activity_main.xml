@@ -9,29 +9,28 @@
         android:id="@+id/urlInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="رابط الاشتراك (https://...)"
+        android:hint="https://example.com/servers.txt"
         android:inputType="textUri" />
 
     <Button
         android:id="@+id/updateButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="تحديث السيرفرات" />
+        android:text="تحديث القائمة واختبار الخوادم" />
 
     <TextView
         android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:text="جاهز"
-        android:textSize="14sp" />
+        android:text="الحالة: غير متصل" />
 
     <ListView
         android:id="@+id/serverList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="12dp" />
 
     <Button
         android:id="@+id/disconnectButton"
