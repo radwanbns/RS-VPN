@@ -29,14 +29,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var serverList: ListView
     private lateinit var disconnectButton: Button
+    private lateinit var adapter: ArrayAdapter<String>
 
     private val io = Executors.newCachedThreadPool()
     private val ui = Handler(Looper.getMainLooper())
 
-    private var servers: List<Server> = emptyList()
-    private var sshClient: SSHClient? = null
-    private var socksServer: ServerSocket? = null
-    private lateinit var adapter: ArrayAdapter<String>
+    @Volatile private var servers: List<Server> = emptyList()
+    @Volatile private var sshClient: SSHClient? = null
+    @Volatile private var socksServer: ServerSocket? = null
 
     companion object {
         private const val SOCKS_PORT = 1080
@@ -53,12 +53,11 @@ class MainActivity : AppCompatActivity() {
         serverList = findViewById(R.id.serverList)
         disconnectButton = findViewById(R.id.disconnectButton)
 
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
+        adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mutableListOf<String>())
         serverList.adapter = adapter
 
         updateButton.setOnClickListener {
-            val url = urlInput.text.toString().trim()
-            fetchServers(url)
+            fetchServers(urlInput.text.toString().trim())
         }
 
         serverList.setOnItemClickListener { _, _, position, _ ->
@@ -69,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        disconnect()
+        disconnectInternal()
         io.shutdown()
         super.onDestroy()
     }
@@ -94,6 +93,7 @@ class MainActivity : AppCompatActivity() {
                 conn.requestMethod = "GET"
                 if (conn.responseCode !in 200..299) {
                     setStatus("فشل التحميل، رمز الاستجابة: ${conn.responseCode}")
+                    conn.disconnect()
                     return@execute
                 }
                 val text = conn.inputStream.bufferedReader().use { it.readText() }
@@ -120,8 +120,8 @@ class MainActivity : AppCompatActivity() {
 
     // ---------- اختبار زمن الاستجابة ----------
 
-    private fun pingServer(server: Server): Long? {
-        return try {
+    private fun pingServer(server: Server): Long? =
+        try {
             Socket().use { socket ->
                 val start = System.nanoTime()
                 socket.connect(InetSocketAddress(server.host, server.port), PING_TIMEOUT_MS)
@@ -130,12 +130,11 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             null
         }
-    }
 
     private fun selectFastestAndConnect(list: List<Server>) {
-        val results = list.map { it to pingServer(it) }
-            .filter { it.second != null }
-            .sortedBy { it.second }
+        val results = list.mapNotNull { server ->
+            pingServer(server)?.let { server to it }
+        }.sortedBy { it.second }
 
         if (results.isEmpty()) {
             setStatus("لا يمكن الوصول إلى أي خادم")
@@ -211,16 +210,19 @@ class MainActivity : AppCompatActivity() {
                 val atyp = input.readUnsignedByte()
                 val host = when (atyp) {
                     1 -> {
-                        val b = ByteArray(4); input.readFully(b)
+                        val b = ByteArray(4)
+                        input.readFully(b)
                         InetAddress.getByAddress(b).hostAddress
                     }
                     3 -> {
                         val len = input.readUnsignedByte()
-                        val b = ByteArray(len); input.readFully(b)
+                        val b = ByteArray(len)
+                        input.readFully(b)
                         String(b, Charsets.UTF_8)
                     }
                     4 -> {
-                        val b = ByteArray(16); input.readFully(b)
+                        val b = ByteArray(16)
+                        input.readFully(b)
                         InetAddress.getByAddress(b).hostAddress
                     }
                     else -> return
@@ -229,13 +231,15 @@ class MainActivity : AppCompatActivity() {
 
                 if (cmd != 1) { // ليس CONNECT
                     output.write(byteArrayOf(5, 7, 0, 1, 0, 0, 0, 0, 0, 0))
+                    output.flush()
                     return
                 }
 
-                val remote = try {
+                val remote: Socket = try {
                     sshClient.newDirectConnection(host, port)
                 } catch (e: Exception) {
                     output.write(byteArrayOf(5, 5, 0, 1, 0, 0, 0, 0, 0, 0)) // رفض الاتصال
+                    output.flush()
                     return
                 }
 
@@ -244,7 +248,7 @@ class MainActivity : AppCompatActivity() {
 
                 remote.use { relay(socket, it) }
             } catch (e: Exception) {
-                // يتم تجاهل أخطاء العملاء الفردية
+                // تجاهل أخطاء العميل الفردي
             }
         }
     }
