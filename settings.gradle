@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SSHVPN"
-include ':app'
+rootProject.name = "RS-VPN"
+include(":app")
